@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Assistant</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f6f8; margin:0; padding:0; }
+    .container { max-width:700px; margin:40px auto; background:#fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.1); padding:20px; }
+    h1 { text-align:center; }
+    .chat { border:1px solid #ddd; border-radius:6px; padding:10px; height:300px; overflow-y:auto; margin-bottom:10px; }
+    .msg { margin:6px 0; }
+    .user { color:#0b5ed7; }
+    .bot { color:#198754; }
+    .input-area { display:flex; gap:10px; }
+    input { flex:1; padding:10px; }
+    button { padding:10px 16px; cursor:pointer; }
+    .note { font-size:0.9em; color:#666; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loginBox">
+      <h2>🔐 Login</h2>
+      <input type="text" id="username" placeholder="Enter username" />
+      <button onclick="login()">Login</button>
+      <hr />
+    </div>
+    <div id="appBox" style="display:none;">
+    <h1>📚 Study Assistant</h1>
+    <div class="chat" id="chat"></div>
+    <div class="input-area">
+      <input type="text" id="question" placeholder="Ask a study question..." />
+      <button onclick="sendQuestion()">Send</button>
+    </div>
+        <select id="subject">
+      <option value="biology">Biology</option>
+      <option value="chemistry">Chemistry</option>
+      <option value="maths">Mathematics</option>
+    </select>
+    <button onclick="startQuiz()">📝 Start Quiz</button>
+        <button onclick="publishInfo()">🌐 Publish App</button>
+    <p class="note">This demo works offline. You can later connect it to OpenAI using an API.</p>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+
+    function addMessage(text, className) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + className;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function sendQuestion() {
+      const input = document.getElementById('question');
+      const q = input.value.trim();
+      if (!q) return;
+      addMessage('You: ' + q, 'user');
+      input.value = '';
+
+      // REAL AI RESPONSE USING OPENAI API
+      fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer YOUR_OPENAI_API_KEY'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'You are a helpful study assistant for students.' },
+            { role: 'user', content: q }
+          ]
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const reply = data.choices[0].message.content;
+        addMessage('Assistant: ' + reply, 'bot');
+      })
+      .catch(() => addMessage('Assistant: Error connecting to AI.', 'bot'));
+
+      setTimeout(() => addMessage('Assistant: ' + response, 'bot'), 600);
+    }
+      function login(){
+      const u = document.getElementById('username').value.trim();
+      if(!u) return alert('Enter username');
+      localStorage.setItem('user',u);
+      document.getElementById('loginBox').style.display='none';
+      document.getElementById('appBox').style.display='block';
+      addMessage('Welcome '+u+'!','bot');
+    }
+
+    const quizzes = {
+      biology:[
+        {q:'What is photosynthesis?',a:'process by which green plants make food'},
+        {q:'Name one part of a plant cell',a:'nucleus'}
+      ],
+      chemistry:[
+        {q:'What is an acid?',a:'substance that produces hydrogen ions'},
+        {q:'Symbol of Oxygen?',a:'O'}
+      ],
+      maths:[
+        {q:'2 + 3 = ?',a:'5'},
+        {q:'Square root of 9?',a:'3'}
+      ]
+    };
+    let quiz=[];
+      {q:'What is photosynthesis?',a:'process by which green plants make food'},
+      {q:'2 + 3 = ?',a:'5'}
+    ];
+    let qi=0;
+    let score=0;
+
+    function startQuiz(){
+      const s=document.getElementById('subject').value;
+      quiz=quizzes[s];
+      qi=0;
+      addMessage('Quiz started: '+s.toUpperCase(),'bot');
+      addMessage(quiz[qi].q,'bot');
+    }
+
+    /* MOBILE APP NOTE:
+    This web app can be converted to a mobile app using tools like:
+    - Cordova
+    - Capacitor
+    - WebView
+    The same code runs on Android.
+    */(){
+      qi=0;
+      addMessage('Quiz started!','bot');
+      addMessage(quiz[qi].q,'bot');
+    }
+
+    function checkQuizAnswer(ans){
+      if(ans.toLowerCase().includes(quiz[qi].a)){
+        score++;
+        addMessage('Correct ✅','bot');
+      } else {
+        addMessage('Incorrect ❌ Answer: '+quiz[qi].a,'bot');
+      }
+      qi++;
+      if(qi<quiz.length){
+        addMessage(quiz[qi].q,'bot');
+      } else {
+        localStorage.setItem('lastScore',score+'/'+quiz.length);
+        addMessage('Quiz finished 🎉 Score: '+score+'/'+quiz.length,'bot');
+        score=0;
+      }
+    }(ans){
+      if(ans.toLowerCase().includes(quiz[qi].a)){
+        addMessage('Correct ✅','bot');
+      } else {
+        addMessage('Incorrect ❌ Answer: '+quiz[qi].a,'bot');
+      }
+      qi++;
+      if(qi<quiz.length) addMessage(quiz[qi].q,'bot');
+      else addMessage('Quiz finished 🎉','bot');
+    }
+
+    const oldSend = sendQuestion;
+    sendQuestion = function(){
+      const input = document.getElementById('question');
+      const q = input.value.trim();
+      if(!q) return;
+      addMessage('You: '+q,'user');
+      input.value='';
+      if(qi<quiz.length && qi>=0){
+        checkQuizAnswer(q);
+        return;
+      }
+      oldSend();
+    }
+    function publishInfo(){
+      alert('To publish: upload this HTML file to GitHub Pages or Netlify. You can also monetize using ads or subscriptions.');
+    }
+</script>
+</body>
+</html>
